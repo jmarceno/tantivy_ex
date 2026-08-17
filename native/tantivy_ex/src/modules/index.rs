@@ -1,8 +1,10 @@
 use rustler::{Encoder, Env, NifResult, ResourceArc, Term};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use tantivy::{directory::MmapDirectory, Index};
+use tantivy::directory::MmapDirectory;
+use tantivy::Index;
 
+use crate::modules::nosync_directory::{sync_all, NoSyncDirectory};
 use crate::modules::resources::{IndexResource, IndexWriterResource, SchemaResource};
 
 /// Index creation and management functions
@@ -90,6 +92,88 @@ pub fn index_open_in_dir(path: String) -> NifResult<ResourceArc<IndexResource>> 
         })),
         Err(e) => Err(rustler::Error::Term(Box::new(format!(
             "Failed to open index: {}",
+            e
+        )))),
+    }
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+pub fn index_create_in_dir_nosync(
+    path: String,
+    schema_res: ResourceArc<SchemaResource>,
+) -> NifResult<ResourceArc<IndexResource>> {
+    let index_path = Path::new(&path);
+
+    // Create the directory if it doesn't exist
+    if !index_path.exists() {
+        if let Err(e) = std::fs::create_dir_all(index_path) {
+            return Err(rustler::Error::Term(Box::new(format!(
+                "Failed to create directory: {}",
+                e
+            ))));
+        }
+    }
+
+    let directory = match NoSyncDirectory::open(index_path) {
+        Ok(directory) => directory,
+        Err(e) => {
+            return Err(rustler::Error::Term(Box::new(format!(
+                "Failed to open directory: {}",
+                e
+            ))))
+        }
+    };
+
+    if let Ok(true) = Index::exists(&directory) {
+        return Err(rustler::Error::Term(Box::new(
+            "Index already exists".to_string(),
+        )));
+    }
+
+    match Index::create(directory, schema_res.schema.clone(), tantivy::IndexSettings::default()) {
+        Ok(index) => Ok(ResourceArc::new(IndexResource {
+            index: Arc::new(index),
+        })),
+        Err(e) => Err(rustler::Error::Term(Box::new(format!(
+            "Failed to create index: {}",
+            e
+        )))),
+    }
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+pub fn index_open_in_dir_nosync(path: String) -> NifResult<ResourceArc<IndexResource>> {
+    let index_path = Path::new(&path);
+
+    let directory = match NoSyncDirectory::open(index_path) {
+        Ok(directory) => directory,
+        Err(e) => {
+            return Err(rustler::Error::Term(Box::new(format!(
+                "Failed to open directory: {}",
+                e
+            ))))
+        }
+    };
+
+    match Index::open(directory) {
+        Ok(index) => Ok(ResourceArc::new(IndexResource {
+            index: Arc::new(index),
+        })),
+        Err(e) => Err(rustler::Error::Term(Box::new(format!(
+            "Failed to open index: {}",
+            e
+        )))),
+    }
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+pub fn index_sync_all<'a>(env: Env<'a>, path: String) -> NifResult<Term<'a>> {
+    let index_path = Path::new(&path);
+
+    match sync_all(index_path) {
+        Ok(()) => Ok(crate::ok().encode(env)),
+        Err(e) => Err(rustler::Error::Term(Box::new(format!(
+            "Failed to sync index: {}",
             e
         )))),
     }

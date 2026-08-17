@@ -9,6 +9,7 @@ pub mod modules {
     pub mod index;
     pub mod index_warming;
     pub mod merge_policy;
+    pub mod nosync_directory;
     pub mod query;
     pub mod reader_manager;
     pub mod resources;

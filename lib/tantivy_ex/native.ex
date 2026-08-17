@@ -60,10 +60,13 @@ defmodule TantivyEx.Native do
 
   # Index functions
   def index_create_in_dir(_path, _schema), do: :erlang.nif_error(:nif_not_loaded)
+  def index_create_in_dir_nosync(_path, _schema), do: :erlang.nif_error(:nif_not_loaded)
   def index_create_in_ram(_schema), do: :erlang.nif_error(:nif_not_loaded)
   def index_open_in_dir(_path), do: :erlang.nif_error(:nif_not_loaded)
+  def index_open_in_dir_nosync(_path), do: :erlang.nif_error(:nif_not_loaded)
   def index_open_or_create_in_dir(_path, _schema), do: :erlang.nif_error(:nif_not_loaded)
   def index_writer(_index, _memory_budget), do: :erlang.nif_error(:nif_not_loaded)
+  def index_sync_all(_path), do: :erlang.nif_error(:nif_not_loaded)
 
   # Writer functions
   def writer_add_document(_writer, _document_json), do: :erlang.nif_error(:nif_not_loaded)

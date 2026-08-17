@@ -94,6 +94,57 @@ defmodule TantivyEx.Index do
   end
 
   @doc """
+  Creates a new index at the given path using a no-sync directory.
+
+  Identical to `create_in_dir/2`, except file writes are flushed to the page
+  cache but never fsynced: commits become visible to readers immediately,
+  while durability is deferred until `sync_all/1` is called on the path.
+  This suits derived, rebuildable index caches where a torn index can be
+  rebuilt from an authoritative store.
+  """
+  @spec create_in_dir_nosync(String.t(), Schema.t()) :: {:ok, t()} | {:error, String.t()}
+  def create_in_dir_nosync(path, schema) do
+    case Native.index_create_in_dir_nosync(path, schema) do
+      {:error, reason} -> {:error, reason}
+      index -> {:ok, index}
+    end
+  rescue
+    e -> {:error, "Failed to create index: #{inspect(e)}"}
+  end
+
+  @doc """
+  Opens an existing index at the specified path using a no-sync directory.
+
+  Reads behave exactly like `open/1` (memory-mapped segment files); writes
+  (refresh commits) skip fsync and are durable only after `sync_all/1`.
+  """
+  @spec open_nosync(String.t()) :: {:ok, t()} | {:error, String.t()}
+  def open_nosync(path) do
+    case Native.index_open_in_dir_nosync(path) do
+      {:error, reason} -> {:error, reason}
+      index -> {:ok, index}
+    end
+  rescue
+    e -> {:error, "Failed to open index: #{inspect(e)}"}
+  end
+
+  @doc """
+  Fsyncs every file under the index directory and the directory itself.
+
+  Restores full crash durability for an index created or opened with the
+  no-sync directory. Returns `:ok` if the path does not exist.
+  """
+  @spec sync_all(String.t()) :: :ok | {:error, String.t()}
+  def sync_all(path) when is_binary(path) do
+    case Native.index_sync_all(path) do
+      {:error, reason} -> {:error, reason}
+      result -> result
+    end
+  rescue
+    e -> {:error, "Failed to sync index: #{inspect(e)}"}
+  end
+
+  @doc """
   Opens an existing index at the specified path, or creates it if it doesn't exist.
 
   This is the recommended function for most use cases as it handles both
