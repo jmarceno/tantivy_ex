@@ -1,8 +1,8 @@
 defmodule TantivyEx.MixProject do
   use Mix.Project
 
-  @version "0.4.1"
-  @source_url "https://github.com/alexiob/tantivy_ex"
+  @version "0.5.0"
+  @source_url "https://github.com/jmarceno/tantivy_ex"
 
   def project do
     [
@@ -36,7 +36,7 @@ defmodule TantivyEx.MixProject do
   defp deps do
     [
       {:rustler_precompiled, "~> 0.4"},
-      {:rustler, "~> 0.36.1", runtime: false, optional: true},
+      {:rustler, "~> 0.38", runtime: false},
       {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:igniter, "~> 0.6", optional: true},
       {:jason, "~> 1.4"}
@@ -87,7 +87,7 @@ defmodule TantivyEx.MixProject do
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
         "Guides" => "#{@source_url}/tree/main/docs"
       },
-      submitter: "alexiob",
+      submitter: "jmarceno",
       maintainer: "alessandro@iob.dev"
     ]
   end
